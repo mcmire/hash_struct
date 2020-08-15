@@ -7,7 +7,7 @@ require "active_support/core_ext/object/json"
 
 require "hash_struct/coerce"
 require "hash_struct/error"
-require "hash_struct/helpers"
+require "hash_struct/process_hash_structs_at_and_within"
 require "hash_struct/property"
 require "hash_struct/types"
 require "hash_struct/write_attribute"
@@ -243,7 +243,7 @@ class HashStruct
   alias_method :to_s, :inspect
 
   def serialize
-    Helpers.process_hash_structs_at_and_within(
+    ProcessHashStructsAtAndWithin.(
       serializable_attributes,
       on_hash_struct: :serialize,
       always: :as_json
@@ -251,7 +251,7 @@ class HashStruct
   end
 
   def to_h
-    Helpers.process_hash_structs_at_and_within(
+    ProcessHashStructsAtAndWithin.(
       serializable_attributes,
       on_hash_struct: :to_h
     )
