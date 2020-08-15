@@ -5,152 +5,13 @@ require "bigdecimal"
 require "time"
 require "active_support/core_ext/object/json"
 
+require "hash_struct/coerce"
+require "hash_struct/error"
+require "hash_struct/helpers"
+require "hash_struct/property"
+require "hash_struct/types"
+
 class HashStruct
-  module Types
-    module Array
-      def self.coerce(value)
-        Array(value)
-      end
-    end
-
-    module BigDecimal
-      def self.coerce(value)
-        BigDecimal(value)
-      end
-    end
-
-    module Boolean
-      def self.coerce(value)
-        !!value
-      end
-    end
-
-    module Float
-      def self.coerce(value)
-        Float(value)
-      end
-    end
-
-    module Integer
-      def self.coerce(value)
-        Integer(value)
-      end
-    end
-
-    module NonBlankString
-      def self.coerce(value)
-        if value.to_s.empty?
-          nil
-        else
-          value.to_s
-        end
-      end
-    end
-
-    module String
-      def self.coerce(value)
-        value.to_s
-      end
-    end
-
-    module Symbol
-      def self.coerce(value)
-        value.to_sym
-      end
-    end
-
-    module TimeInUtc
-      def self.coerce(value)
-        if acts_like_time?(value)
-          value.to_time.utc
-        elsif acts_like_date?(value)
-          date = value.to_date
-          Time.utc(date.year, date.month, date.day)
-        else
-          begin
-            coerce(Time.iso8601(value))
-          rescue ArgumentError
-            coerce(Date.iso8601(value))
-          end
-        end
-      end
-
-      def self.acts_like_time?(value)
-        (value.respond_to?(:acts_like_time?) && value.acts_like_time?) ||
-          value.is_a?(Time) ||
-          value.is_a?(DateTime)
-      end
-
-      def self.acts_like_date?(value)
-        (value.respond_to?(:acts_like_date?) && value.acts_like_date?) ||
-          value.is_a?(Date) ||
-          value.is_a?(DateTime)
-      end
-    end
-  end
-
-  class Property
-    attr_reader :name, :aliases, :default, :coerce, :block,
-      :after_write_callbacks
-
-    def initialize(
-      name:,
-      required:,
-      aliases:,
-      default:,
-      readonly:,
-      reader: name,
-      coerce:,
-      block:
-    )
-      @name = name
-      @required = required
-      @aliases = aliases
-      @default = default
-      @readonly = readonly
-      @reader = reader
-      @coerce = coerce
-      @block = block
-
-      @after_write_callbacks = []
-    end
-
-    def update(overrides)
-      overrides.each do |key, value|
-        instance_variable_set("@#{key}", value)
-      end
-    end
-
-    def required?
-      @required
-    end
-
-    def readonly?
-      @readonly
-    end
-
-    def ==(other)
-      other.is_a?(self.class) && name == other.name
-    end
-    alias_method :eql?, :==
-
-    def hash
-      name.hash
-    end
-  end
-
-  BUILTIN_TYPES = {
-    array: Types::Array,
-    big_decimal: Types::BigDecimal,
-    boolean: Types::Boolean,
-    float: Types::Float,
-    integer: Types::Integer,
-    non_blank_string: Types::NonBlankString,
-    string: Types::String,
-    symbol: Types::Symbol,
-    time_in_utc: Types::TimeInUtc
-  }
-
   class << self
     attr_accessor :properties
     attr_accessor :attribute_methods_module
@@ -534,82 +395,13 @@ class HashStruct
   end
 
   def coerce(value, coercer, property)
-    coerce_without_exceptions(value, coercer)
-  rescue => error
-    message = "(#{self.class.name}) Could not coerce #{value.inspect} for"
-
-    if property.required?
-      message << ' required property'
-    else
-      message << ' property'
-    end
-
-    message << " #{property.name.inspect}"
-
-    if coercer.respond_to?(:call)
-      message << ' using a custom proc'
-    elsif coercer.is_a?(Class)
-      message << " using #{coercer.name}"
-    elsif coercer.is_a?(Array)
-      message << " using Array[#{coercer.first.inspect}]"
-    elsif coercer.is_a?(Hash)
-      key_and_value =
-        "#{coercer.keys.first.inspect} => #{coercer.values.first.inspect}"
-      message << " using Hash[#{key_and_value}]"
-    else
-      message << " using #{coercer.inspect}"
-    end
-
-    message << ": #{error.message} (#{error.class})"
-
-    raise Error, message, cause: error
-  end
-
-  def coerce_without_exceptions(value, coercer)
-    if coercer.is_a?(Symbol)
-      if respond_to?(coercer, true)
-        send(coercer, value)
-      else
-        coerce_without_exceptions(value, BUILTIN_TYPES.fetch(coercer))
-      end
-    elsif coercer.is_a?(Array)
-      coerce_array(value, coercer.first)
-    elsif coercer.is_a?(Hash)
-      coerce_hash(value, coercer.keys.first, coercer.values.first)
-    elsif coercer.respond_to?(:call)
-      coerce_with_callable(value, coercer)
-    else
-      coerce_with_class(value, coercer)
-    end
-  end
-
-  def coerce_array(array, coercer)
-    array.map { |value| coerce_without_exceptions(value, coercer) }
-  end
-
-  def coerce_hash(hash, key_coercer, value_coercer)
-    hash.inject({}) do |coerced_hash, (key, value)|
-      coerced_key = coerce_without_exceptions(key, key_coercer)
-      coerced_value = coerce_without_exceptions(value, value_coercer)
-      coerced_hash.merge(coerced_key => coerced_value)
-    end
-  end
-
-  def coerce_with_callable(value, callable)
-    callable.call(value)
-  end
-
-  def coerce_with_class(value, klass, *args)
-    if klass.respond_to?(:coerce)
-      klass.coerce(value)
-    elsif klass.ancestors.include?(HashStruct)
-      klass.new(
-        value,
-        _allow_writing_readonly_attributes: allow_writing_readonly_attributes?
-      )
-    else
-      klass.new(value)
-    end
+    Coerce.call(
+      class_name: self.class.name,
+      value: value,
+      coercer: coercer,
+      property: property,
+      allow_writing_readonly_attributes: allow_writing_readonly_attributes?
+    )
   end
 
   def full_attributes
@@ -638,46 +430,4 @@ class HashStruct
       hash.merge(property.name => read_attribute(property.name))
     end
   end
-
-  class Error < StandardError; end
-
-  module Helpers
-    def process_hash_structs_at_and_within(value, on_hash_struct:, always: nil)
-      if value.is_a?(HashStruct)
-        process_hash_structs_at_and_within(
-          value.send(on_hash_struct),
-          on_hash_struct: on_hash_struct,
-          always: always
-        )
-      elsif value.is_a?(Hash)
-        value.inject({}) do |hash, (_key, _value)|
-          _processed_key = process_hash_structs_at_and_within(
-            _key,
-            on_hash_struct: on_hash_struct,
-            always: always
-          )
-          _processed_value = process_hash_structs_at_and_within(
-            _value,
-            on_hash_struct: on_hash_struct,
-            always: always
-          )
-          hash.merge(_processed_key => _processed_value)
-        end
-      elsif value.is_a?(Array)
-        value.map do |_value|
-          process_hash_structs_at_and_within(
-            _value,
-            on_hash_struct: on_hash_struct,
-            always: always
-          )
-        end
-      elsif always
-        value.send(always)
-      else
-        value
-      end
-    end
-    module_function :process_hash_structs_at_and_within
-  end
-  private_constant :Helpers
 end
