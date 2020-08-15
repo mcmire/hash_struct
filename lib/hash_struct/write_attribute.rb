@@ -56,7 +56,7 @@ class HashStruct
       if required_property_blank?
         raise Error.new(
           "(#{hash_struct.class.name}) Required property #{property.name.inspect}" +
-          "#{inspected_aliases} was missing or set to nil."
+          "#{property.inspected_aliases} was missing or set to nil."
         )
       end
     end
@@ -65,14 +65,6 @@ class HashStruct
       property.required? &&
         coerced_value.nil? &&
         property.coerce != :boolean
-    end
-
-    def inspected_aliases
-      if property.aliases.any?
-        ' (' + property.aliases.map(&:inspect).join(', ') + ')'
-      else
-        ''
-      end
     end
 
     def should_coerce_value?

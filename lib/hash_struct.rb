@@ -329,16 +329,9 @@ class HashStruct
   def ensure_required_properties_set!
     self.class.required_properties.each do |property|
       if read_attribute(property.name).nil?
-        inspected_aliases =
-          if property.aliases.any?
-            ' (' + property.aliases.map(&:inspect).join(', ') + ')'
-          else
-            ''
-          end
-
         raise Error.new(
           "(#{self.class.name}) Required property #{property.name.inspect}" +
-          "#{inspected_aliases} was missing or set to nil."
+          "#{property.inspected_aliases} was missing or set to nil."
         )
       end
     end

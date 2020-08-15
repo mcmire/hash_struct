@@ -39,6 +39,14 @@ class HashStruct
       @readonly
     end
 
+    def inspected_aliases
+      if aliases.any?
+        ' (' + aliases.map(&:inspect).join(', ') + ')'
+      else
+        ''
+      end
+    end
+
     def ==(other)
       other.is_a?(self.class) && name == other.name
     end
