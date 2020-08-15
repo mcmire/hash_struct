@@ -10,6 +10,7 @@ require "hash_struct/error"
 require "hash_struct/helpers"
 require "hash_struct/property"
 require "hash_struct/types"
+require "hash_struct/write_attribute"
 
 class HashStruct
   class << self
@@ -195,6 +196,10 @@ class HashStruct
     end
   end
 
+  def allow_writing_readonly_attributes?
+    @allow_writing_readonly_attributes
+  end
+
   def attributes
     self.class.writable_properties.inject({}) do |hash, property|
       hash.merge(property.name => read_attribute(property.name))
@@ -220,48 +225,7 @@ class HashStruct
   alias_method :[], :read_attribute
 
   def write_attribute(name, value, override: false)
-    property = self.class.look_up_property!(name)
-
-    if property
-      if property.readonly? && !override && !allow_writing_readonly_attributes?
-        raise Error.new(
-          "(#{self.class.name}) Couldn't write readonly attribute " +
-          "#{name.inspect}."
-        )
-      else
-        coerced_value =
-          if property.coerce && (!value.nil? || property.coerce == :boolean)
-            coerce(value, property.coerce, property)
-          else
-            value
-          end
-
-        if property.required? && coerced_value.nil? && property.coerce != :boolean
-          inspected_aliases =
-            if property.aliases.any?
-              ' (' + property.aliases.map(&:inspect).join(', ') + ')'
-            else
-              ''
-            end
-
-          raise Error.new(
-            "(#{self.class.name}) Required property #{property.name.inspect}" +
-            "#{inspected_aliases} was missing or set to nil."
-          )
-        end
-
-        written_attributes[property.name] = coerced_value
-
-        property.after_write_callbacks.each do |callback|
-          instance_exec(written_attributes[property.name], &callback)
-        end
-      end
-    else
-      raise Error.new(
-        "#{self.class.name} tried to write a property #{name.inspect} " +
-        "that it doesn't recognize."
-      )
-    end
+    WriteAttribute.call(self, name, value, override: override)
   end
   alias_method :[]=, :write_attribute
 
@@ -353,10 +317,6 @@ class HashStruct
 
   def allow_reading_readonly_attributes?
     @allow_reading_readonly_attributes
-  end
-
-  def allow_writing_readonly_attributes?
-    @allow_writing_readonly_attributes
   end
 
   def standardize_property_names_in!(attributes)
