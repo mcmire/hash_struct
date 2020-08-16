@@ -1,5 +1,5 @@
 RSpec.describe HashStruct, '#serialize' do
-  it 'returns the attributes of the HashStruct, including aliases, converting keys and values to JSON-compatible types and nested HashStructs to hashes' do
+  it 'returns the attributes of the HashStruct, including aliases, readonly attributes, and unset attributes, converting keys and values to JSON-compatible types and nested HashStructs to hashes' do
     person_model = define_model(:Person) do
       property :first_name
       property :last_name

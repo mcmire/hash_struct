@@ -31,6 +31,8 @@ RSpec.describe HashStruct, '.property' do
           .writing_via(way_to_write)
       end
 
+      # TODO: Should this be the case? Should nil turn into false or should it
+      # raise an error since the property is required?
       it 'defines a property that coerces falsey values to false' do
         model = define_model { property :notify, coerce: :boolean }
 

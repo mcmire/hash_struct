@@ -1,5 +1,9 @@
 class HashStruct
   module Types
+    def self.class_for(type)
+      BUILTIN_TYPES[type]
+    end
+
     module Array
       def self.coerce(value)
         Array(value)
@@ -42,7 +46,9 @@ class HashStruct
 
     module String
       def self.coerce(value)
-        value.to_s
+        if !value.nil?
+          value.to_s
+        end
       end
     end
 

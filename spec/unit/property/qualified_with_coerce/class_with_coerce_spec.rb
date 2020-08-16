@@ -70,7 +70,7 @@ RSpec.describe HashStruct, '.property' do
               end
             end
             address_model = define_model(:Address) do
-              property :country, default: 'US', coerce: country_class
+              property :country, default: :us, coerce: country_class
             end
             address = address_model.new(country: :ca)
 

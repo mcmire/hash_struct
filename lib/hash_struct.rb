@@ -1,32 +1,33 @@
-require "hash_struct/version"
-
 require "active_support/core_ext/module/delegation"
 require "bigdecimal"
 require "time"
 require "active_support/core_ext/object/json"
 
-require "hash_struct/class_methods"
-require "hash_struct/coerce"
+require "hash_struct/deep_transform"
 require "hash_struct/error"
-require "hash_struct/instance_methods"
-require "hash_struct/process_hash_structs_at_and_within"
-require "hash_struct/property"
+require "hash_struct/hashie_extensions"
 require "hash_struct/types"
-require "hash_struct/write_attribute"
 
-class HashStruct
-  include InstanceMethods
-  extend ClassMethods
+class HashStruct < Hashie::Dash
+  include Hashie::Extensions::Dash::Coercion
 
-  def self.inherited(subclass)
-    subclass.properties = properties.dup
-    subclass.attribute_methods_module = Module.new
-    subclass.send(:include, subclass.attribute_methods_module)
-    subclass.transform_property_names = transform_property_names
-    subclass.discard_all_unrecognized_attributes = discard_all_unrecognized_attributes?
-  end
+  # Order-independent mixins
+  include HashieExtensions::AsJson
+  include HashieExtensions::AttributeMethods
+  include HashieExtensions::CustomErrorMessages
+  include HashieExtensions::DescribeProperty
+  include HashieExtensions::DiscardAllUnrecognizedAttributes
+  include HashieExtensions::Equality
+  include HashieExtensions::Inspect
+  include HashieExtensions::ToH
 
-  self.properties = Set.new
-  self.transform_property_names = -> (name) { name.to_sym }
-  self.discard_all_unrecognized_attributes = false
+  # Order-dependent mixins
+  include HashieExtensions::CustomCoercion
+  include HashieExtensions::AfterWritingAttribute
+  include HashieExtensions::ResolveProperty
+  include HashieExtensions::DefaultPropertiesToRequired
+  include HashieExtensions::TransformPropertyNames
+  include HashieExtensions::Aliases
+  include HashieExtensions::BooleanPropertiesAllowNil
+  include HashieExtensions::ReadonlyProperties
 end

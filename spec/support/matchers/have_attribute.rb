@@ -23,9 +23,9 @@ RSpec::Matchers.define :have_attribute do |attribute_name|
 
   define_method(:pretty_failed_results) do
     failed_results.map do |result|
-      "* Expected #{result[:input].inspect} to map to " +
-        "#{result[:expected_output]}, but it mapped to " +
-        "#{result[:actual_output].inspect}"
+      "* Expected ‹#{result[:input].inspect}› to map to " +
+        "‹#{result[:expected_output].inspect}›, but it mapped to " +
+        "‹#{result[:actual_output].inspect}›"
     end.join("\n")
   end
 

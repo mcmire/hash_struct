@@ -18,17 +18,11 @@ module Helpers
     end
   end
 
-  def default_attributes_for(
-    model,
-    defaults,
-    property_names: model.properties.map(&:name)
-  )
+  def default_attributes_for(model, defaults, property_names: model.properties)
     property_names.inject({}) do |hash, name|
-      property = model.look_up_property!(name)
-
-      if property.required?
+      if model.required_properties.include?(name)
         default_value = determine_default_for(
-          property.coerce,
+          model.key_coercion(name),
           name: name,
           defaults: defaults
         )
@@ -39,22 +33,22 @@ module Helpers
     end
   end
 
-  def determine_default_for(coerce, name: nil, defaults: {})
+  def determine_default_for(coercion, name: nil, defaults: {})
     if defaults.include?(name)
       defaults[name]
     elsif (
-      coerce &&
-      coerce.is_a?(Class) &&
-      coerce.ancestors.include?(described_class)
+      coercion &&
+      coercion.is_a?(Class) &&
+      coercion.ancestors.include?(described_class)
     )
-      coerce.new(default_attributes_for(coerce, defaults))
+      coercion.new(default_attributes_for(coercion, defaults))
     else
-      case coerce
+      case coercion
       when Array
-        [determine_default_for(coerce.first)]
+        [determine_default_for(coercion.first)]
       when Hash
-        default_key = determine_default_for(coerce.keys.first)
-        default_value = determine_default_for(coerce.values.first)
+        default_key = determine_default_for(coercion.keys.first)
+        default_value = determine_default_for(coercion.values.first)
         { default_key => default_value }
       when :big_decimal, :float, :integer
         0
@@ -79,7 +73,7 @@ module Helpers
   end
 
   def define_model(name = :TestHashStruct, &block)
-    define_class(name, superclass: described_class, &block)
+    define_class(name, superclass: HashStruct, &block)
   end
 
   def define_class(name, superclass: nil, &block)

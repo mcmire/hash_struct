@@ -1,5 +1,5 @@
 RSpec.describe HashStruct, '#to_h' do
-  it 'returns the attributes of the HashStruct, including aliases, and the attributes of nested HashStructs' do
+  it 'returns the attributes of the HashStruct, including aliases and the attributes of nested HashStructs, but excluding readonly attributes' do
     person_model = define_model(:Person) do
       property :first_name
       property :last_name
@@ -45,6 +45,10 @@ RSpec.describe HashStruct, '#to_h' do
         { first_name: 'Marty', last_name: 'McFly' },
         { first_name: 'Doc', last_name: 'Brown' }
       ]
+    })
+    expect(store.to_h).to include({
+      location: be_an_instance_of(Hash),
+      employees: [be_an_instance_of(Hash), be_an_instance_of(Hash)]
     })
   end
 end
