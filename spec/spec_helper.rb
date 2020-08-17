@@ -1,6 +1,5 @@
 require "bundler/setup"
 
-require "active_support"
 require "active_support/core_ext/time"
 require "climate_control"
 require "pry-byebug"

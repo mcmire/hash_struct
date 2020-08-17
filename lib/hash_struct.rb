@@ -1,7 +1,9 @@
-require "active_support/core_ext/module/delegation"
 require "bigdecimal"
 require "time"
+
+require "active_support/core_ext/module/delegation"
 require "active_support/core_ext/object/json"
+require "hashie"
 
 require "hash_struct/deep_transform"
 require "hash_struct/error"
