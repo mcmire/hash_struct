@@ -21,6 +21,9 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
+  config.order = :random
+  Kernel.srand config.seed
+
   config.extend Macros
   config.include Helpers
 end
