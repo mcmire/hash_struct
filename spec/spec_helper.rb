@@ -2,8 +2,9 @@ require "bundler/setup"
 
 require "active_support"
 require "active_support/core_ext/time"
-require "pry-byebug"
 require "climate_control"
+require "pry-byebug"
+require "super_diff/rspec"
 
 require "hash_struct"
 
